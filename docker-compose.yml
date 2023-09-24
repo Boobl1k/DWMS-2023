@@ -20,6 +20,7 @@ services:
     container_name: datanode1
     ports:
       - 127.0.6.1:9864:9864
+      - 127.0.6.1:9866:9866
     volumes:
       - hadoop_datanode1:/hadoop/dfs/data
     environment:
@@ -33,6 +34,7 @@ services:
     container_name: datanode2
     ports:
       - 127.0.6.2:9864:9864
+      - 127.0.6.2:9866:9866
     volumes:
       - hadoop_datanode2:/hadoop/dfs/data
     environment:
@@ -46,6 +48,7 @@ services:
     container_name: datanode3
     ports:
       - 127.0.6.3:9864:9864
+      - 127.0.6.3:9866:9866
     volumes:
       - hadoop_datanode3:/hadoop/dfs/data
     environment:
@@ -53,9 +56,57 @@ services:
     env_file:
       - ./hadoop.env
     hostname: datanode3
+
+  resourcemanager:
+    image: bde2020/hadoop-resourcemanager:2.0.0-hadoop3.2.1-java8
+    container_name: resourcemanager
+    ports:
+      - 127.0.5.2:8088:8088
+    environment:
+      SERVICE_PRECONDITION: "namenode:9000 namenode:9870 datanode1:9864 datanode2:9864 datanode3:9864"
+    env_file:
+      - ./hadoop.env
+    hostname: resourcemanager
+
+  nodemanager:
+    image: bde2020/hadoop-nodemanager:2.0.0-hadoop3.2.1-java8
+    container_name: nodemanager
+    ports:
+      - 127.0.5.4:8042:8042
+    environment:
+      SERVICE_PRECONDITION: "namenode:9000 namenode:9870 datanode1:9864 datanode2:9864 datanode3:9864 resourcemanager:8088"
+    env_file:
+      - ./hadoop.env
+    hostname: nodemanager
   
+  historyserver:
+    image: bde2020/hadoop-historyserver:2.0.0-hadoop3.2.1-java8
+    container_name: historyserver
+    ports:
+      - 127.0.5.3:8188:8188
+    environment:
+      SERVICE_PRECONDITION: "namenode:9000 namenode:9870 datanode1:9864 datanode2:9864 datanode3:9864 resourcemanager:8088"
+    volumes:
+      - hadoop_historyserver:/hadoop/yarn/timeline
+    env_file:
+      - ./hadoop.env
+    hostname: historyserver
+
 volumes:
   hadoop_namenode:
   hadoop_datanode1:
+    driver_opts:
+      o: "size=${DATANODE_SIZE}"
+      device: tmpfs
+      type: tmpfs
   hadoop_datanode2:
+    driver_opts:
+      o: "size=${DATANODE_SIZE}"
+      device: tmpfs
+      type: tmpfs
   hadoop_datanode3:
+    driver_opts:
+      o: "size=${DATANODE_SIZE}"
+      device: tmpfs
+      type: tmpfs
+  hadoop_historyserver:
