@@ -2,64 +2,78 @@ version: "3"
 
 services:
   namenode:
-    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+    image: flokkr/hadoop:latest
     container_name: namenode
+    command:
+      - hdfs
+      - namenode
     ports:
-      - 127.0.5.1:9000:9000
+      - 127.0.5.1:50070:50070
       - 127.0.5.1:9870:9870
-    volumes:
-      - hadoop_namenode:/hadoop/dfs/name
+      - 127.0.5.1:9000:9000
     environment:
-      - CLUSTER_NAME=test
+      ENSURE_NAMENODE_DIR: /tmp/hadoop-hadoop/dfs/name
     env_file:
       - ./hadoop.env
     hostname: namenode
 
   datanode1:
-    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    image: flokkr/hadoop:latest
     container_name: datanode1
+    command:
+      - hdfs
+      - datanode
     ports:
       - 127.0.6.1:9864:9864
       - 127.0.6.1:9866:9866
-    volumes:
-      - hadoop_datanode1:/hadoop/dfs/data
     environment:
       SERVICE_PRECONDITION: "namenode:9870"
     env_file:
       - ./hadoop.env
     hostname: datanode1
+    links:
+      - namenode
 
   datanode2:
-    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    image: flokkr/hadoop:latest
     container_name: datanode2
+    command:
+      - hdfs
+      - datanode
     ports:
       - 127.0.6.2:9864:9864
       - 127.0.6.2:9866:9866
-    volumes:
-      - hadoop_datanode2:/hadoop/dfs/data
     environment:
       SERVICE_PRECONDITION: "namenode:9870"
     env_file:
       - ./hadoop.env
     hostname: datanode2
+    links:
+      - namenode
 
   datanode3:
-    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    image: flokkr/hadoop:latest
     container_name: datanode3
+    command:
+      - hdfs
+      - datanode
     ports:
       - 127.0.6.3:9864:9864
       - 127.0.6.3:9866:9866
-    volumes:
-      - hadoop_datanode3:/hadoop/dfs/data
     environment:
       SERVICE_PRECONDITION: "namenode:9870"
     env_file:
       - ./hadoop.env
     hostname: datanode3
+    links:
+      - namenode
 
   resourcemanager:
-    image: bde2020/hadoop-resourcemanager:2.0.0-hadoop3.2.1-java8
+    image: flokkr/hadoop:latest
     container_name: resourcemanager
+    command:
+      - yarn
+      - resourcemanager
     ports:
       - 127.0.5.2:8088:8088
     environment:
@@ -69,8 +83,11 @@ services:
     hostname: resourcemanager
 
   nodemanager:
-    image: bde2020/hadoop-nodemanager:2.0.0-hadoop3.2.1-java8
+    image: flokkr/hadoop:latest
     container_name: nodemanager
+    command:
+      - yarn
+      - nodemanager
     ports:
       - 127.0.5.4:8042:8042
     environment:
@@ -78,35 +95,3 @@ services:
     env_file:
       - ./hadoop.env
     hostname: nodemanager
-  
-  historyserver:
-    image: bde2020/hadoop-historyserver:2.0.0-hadoop3.2.1-java8
-    container_name: historyserver
-    ports:
-      - 127.0.5.3:8188:8188
-    environment:
-      SERVICE_PRECONDITION: "namenode:9000 namenode:9870 datanode1:9864 datanode2:9864 datanode3:9864 resourcemanager:8088"
-    volumes:
-      - hadoop_historyserver:/hadoop/yarn/timeline
-    env_file:
-      - ./hadoop.env
-    hostname: historyserver
-
-volumes:
-  hadoop_namenode:
-  hadoop_datanode1:
-    driver_opts:
-      o: "size=${DATANODE_SIZE}"
-      device: tmpfs
-      type: tmpfs
-  hadoop_datanode2:
-    driver_opts:
-      o: "size=${DATANODE_SIZE}"
-      device: tmpfs
-      type: tmpfs
-  hadoop_datanode3:
-    driver_opts:
-      o: "size=${DATANODE_SIZE}"
-      device: tmpfs
-      type: tmpfs
-  hadoop_historyserver:
