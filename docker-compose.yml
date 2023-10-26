@@ -1,97 +1,64 @@
-version: "3"
-
+version: '3'
 services:
+
   namenode:
-    image: flokkr/hadoop:latest
+    image: bde2020/hadoop-namenode:2.0.0-hadoop2.7.4-java8
     container_name: namenode
-    command:
-      - hdfs
+    volumes:
+      - ./hdfs/namenode:/hadoop/dfs/name
+    environment:
+      - CLUSTER_NAME=hive
+    env_file:
+      - ./hadoop-hive.env
+    ports:
+      - 50070:50070
+    hostname: namnode
+
+  datanode:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop2.7.4-java8
+    container_name: datanode
+    volumes:
+      - ./hdfs/datanode:/hadoop/dfs/data
+    env_file:
+      - ./hadoop-hive.env
+    environment:
+      SERVICE_PRECONDITION: "namenode:50070"
+    depends_on:
       - namenode
     ports:
-      - 127.0.5.1:50070:50070
-      - 127.0.5.1:9870:9870
-      - 127.0.5.1:9000:9000
-    environment:
-      ENSURE_NAMENODE_DIR: /tmp/hadoop-hadoop/dfs/name
-    env_file:
-      - ./hadoop.env
-    hostname: namenode
+      - "50075:50075"
+    hostname: datanode
 
-  datanode1:
-    image: flokkr/hadoop:latest
-    container_name: datanode1
-    command:
-      - hdfs
+  hive-server:
+    image: bde2020/hive:2.3.2-postgresql-metastore
+    container_name: hive-server
+    env_file:
+      - ./hadoop-hive.env
+    environment:
+      HIVE_CORE_CONF_javax_jdo_option_ConnectionURL: "jdbc:postgresql://hive-metastore/metastore"
+      SERVICE_PRECONDITION: "hive-metastore:9083"
+    depends_on:
+      - hive-metastore
+    ports:
+      - "10000:10000"
+
+  hive-metastore:
+    image: bde2020/hive:2.3.2-postgresql-metastore
+    container_name: hive-metastore
+    env_file:
+      - ./hadoop-hive.env
+    command: /opt/hive/bin/hive --service metastore
+    environment:
+      SERVICE_PRECONDITION: "namenode:50070 datanode:50075 hive-metastore-postgresql:5432"
+    depends_on:
+      - hive-metastore-postgresql
+    ports:
+      - "9083:9083"
+
+  hive-metastore-postgresql:
+    image: bde2020/hive-metastore-postgresql:2.3.0
+    container_name: hive-metastore-postgresql
+    volumes:
+      - ./metastore-postgresql/postgresql/data:/var/lib/postgresql/data
+    depends_on:
       - datanode
-    ports:
-      - 127.0.6.1:9864:9864
-      - 127.0.6.1:9866:9866
-    environment:
-      SERVICE_PRECONDITION: "namenode:9870"
-    env_file:
-      - ./hadoop.env
-    hostname: datanode1
-    links:
-      - namenode
-
-  datanode2:
-    image: flokkr/hadoop:latest
-    container_name: datanode2
-    command:
-      - hdfs
-      - datanode
-    ports:
-      - 127.0.6.2:9864:9864
-      - 127.0.6.2:9866:9866
-    environment:
-      SERVICE_PRECONDITION: "namenode:9870"
-    env_file:
-      - ./hadoop.env
-    hostname: datanode2
-    links:
-      - namenode
-
-  datanode3:
-    image: flokkr/hadoop:latest
-    container_name: datanode3
-    command:
-      - hdfs
-      - datanode
-    ports:
-      - 127.0.6.3:9864:9864
-      - 127.0.6.3:9866:9866
-    environment:
-      SERVICE_PRECONDITION: "namenode:9870"
-    env_file:
-      - ./hadoop.env
-    hostname: datanode3
-    links:
-      - namenode
-
-  resourcemanager:
-    image: flokkr/hadoop:latest
-    container_name: resourcemanager
-    command:
-      - yarn
-      - resourcemanager
-    ports:
-      - 127.0.5.2:8088:8088
-    environment:
-      SERVICE_PRECONDITION: "namenode:9000 namenode:9870 datanode1:9864 datanode2:9864 datanode3:9864"
-    env_file:
-      - ./hadoop.env
-    hostname: resourcemanager
-
-  nodemanager:
-    image: flokkr/hadoop:latest
-    container_name: nodemanager
-    command:
-      - yarn
-      - nodemanager
-    ports:
-      - 127.0.5.4:8042:8042
-    environment:
-      SERVICE_PRECONDITION: "namenode:9000 namenode:9870 datanode1:9864 datanode2:9864 datanode3:9864 resourcemanager:8088"
-    env_file:
-      - ./hadoop.env
-    hostname: nodemanager

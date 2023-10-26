@@ -1,27 +1,39 @@
-### 1. startup
+### 3. hive
 
 add to `/etc/hosts` (or `C:\Windows\System32\drivers\etc\hosts` for windows)
 
 ```
 #hadoop
-127.0.5.1 namenode
-127.0.6.1 datanode1
-127.0.6.2 datanode2
-127.0.6.3 datanode3
-127.0.5.2 resourcemanager
-127.0.5.4 nodemanager
+127.0.0.1 namenode
+127.0.0.1 datanode
 ```
 
-start the server `docker compose up`
+```sql
+create database if not exists testdb;
+use testdb;
+create table netflix (
+    user_id integer,
+    rating integer,
+    date_created DATE
+) 
+row format delimited 
+fields terminated by ',' 
+lines terminated by '\n' 
+stored as textfile location 'hdfs://namenode:8020/hive';
+```
 
-### 2. mapreduce
+```hdfs dfs -put /hive /hive/```
 
-```docker cp dataset namenode:dataset```
+```sql
+select * from 
+        (
+        SELECT *,ROW_NUMBER() over () as rowid FROM netflix
+        )t 
+    where rowid > 0 and rowid <=20;
+```
 
-```docker cp mapreduce/ namenode:mapreduce/```
-
-```docker exec -it namenode bash```
-
-```hdfs dfs -put /dataset /```
-
-```hadoop jar /mapreduce/java/hadoop-streaming-3.3.6.jar -file /mapreduce/python/mapper.py -mapper /mapreduce/python/mapper.py -file /mapreduce/python/reducer.py -reducer /mapreduce/python/reducer.py -input /dataset -output /output/```
+```sql
+select year, avg(rating) from (
+    select *, date_format(date_created, 'yyyy') as year from netflix
+)t group by year;
+```
