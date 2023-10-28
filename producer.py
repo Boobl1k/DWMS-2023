@@ -1,27 +1,21 @@
 # https://pulsar.apache.org/docs/3.1.x/client-libraries-python-use/
 
 import pulsar
-import random
 import sys
-import json
+from message import Message
+from pulsar.schema import AvroSchema
 
-client = pulsar.Client('pulsar://localhost:6650')
+client = pulsar.Client("pulsar://localhost:6650")
 
 try:
-    producer = client.create_producer('my-topic')
-
+    producer = client.create_producer("message-topic", schema=AvroSchema(Message))
     id = 1
     for line in sys.stdin:
         line = line.strip()
-        message = {
-            "id": id,
-            "text": line
-        }
-        if line == "add_field":
-            message["extra"] = random.randrange(1,6)
-        json_message = json.dumps(message)
-        print(json_message)
-        producer.send(json_message.encode('utf-8'))
+        message = Message(id = id, text = line, extra = "42")
+
+        print(message)
+        producer.send(message)
         id += 1
 
 finally:
