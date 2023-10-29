@@ -97,3 +97,12 @@ services:
       - "6650:6650"
       - "8080:8080"
     command: bash -c "bin/apply-config-from-env.py conf/broker.conf && exec bin/pulsar broker"
+
+  postgres:
+    image: postgres:alpine3.18
+    environment:
+      POSTGRES_USER: your_username
+      POSTGRES_PASSWORD: your_password
+      POSTGRES_DB: your_database
+    ports:
+      - "5432:5432"
