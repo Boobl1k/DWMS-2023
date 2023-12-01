@@ -9,8 +9,11 @@ services:
       - 7687:7687
     environment:
       - NEO4J_AUTH=neo4j/password
+      - NEO4J_dbms_security_procedures_unrestricted=gds.*,apoc.*
+      - NEO4J_dbms_security_procedures_whitelist=gds.*,apoc.*
     volumes:
       - ./neo4j_data:/data
       - ./neo4j_logs:/logs
       - ./neo4j_import:/var/lib/neo4j/import
       - ./neo4j_plugins:/plugins
+      - ./neo4j_conf:/var/lib/neo4j/conf
