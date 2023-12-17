@@ -1,34 +1,37 @@
-```sql
-LOAD CSV WITH HEADERS FROM 'file:///twich_short.csv' as row
-CREATE (subscriber:User {id: toInteger(row.numeric_id_1)})
-CREATE (streamer:User {id: toInteger(row.numeric_id_2)})
-CREATE (subscriber)-[:SUBSCRIBED_TO]->(streamer);
+
+```sh
+/pulsar/bin/pulsar-admin topics create public/default/test-topic
+```
+
+```sh
+/pulsar/bin/pulsar-admin sinks create \
+  --tenant "public" \
+  --sink-type 'jdbc-clickhouse' \
+  --name 'orders-connector' \
+  --inputs "persistent://public/default/test-topic" \
+  --parallelism 1 \
+  --sink-config-file /connector-config.yaml
 ```
 
 ```sql
-CALL gds.graph.project(
-    'twich_subscriptions',
-    'User',
-    'SUBSCRIBED_TO'
-);
-```
+CREATE TABLE orders
+(
+    product_name String,
+    price        INTEGER
+) ENGINE = MergeTree()
+      ORDER BY product_name;
 
-```sql
-CALL gds.pageRank.stream(
-    'twich_subscriptions',
-    {
-        maxIterations: 10000,
-        dampingFactor: 0.95
-    }
-)
-YIELD nodeId, score
-RETURN nodeId, score
-ORDER BY score DESC
-LIMIT 500;
-```
+CREATE TABLE orders_aggregated
+(
+    product_name  String,
+    total_price   INTEGER
+) ENGINE = SummingMergeTree()
+      ORDER BY product_name;
 
-```sql
-MATCH (n)-[r]->(m)
-RETURN n, r, m
-LIMIT 20000;
+CREATE MATERIALIZED VIEW orders_mv TO orders_aggregated AS
+SELECT product_name,
+       sum(price) as total_price
+FROM orders
+GROUP BY product_name;
+
 ```
